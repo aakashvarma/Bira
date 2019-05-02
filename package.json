@@ -17,7 +17,7 @@
 		"commands": [
 			{
 				"command": "extension.hallo",
-				"title": "Hello Manmeet"
+				"title": "Test Errors"
 			}
 		]
 	},
