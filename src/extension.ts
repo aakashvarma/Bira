@@ -1,7 +1,13 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { exec } from 'child_process';
+import { exec, ExecException } from 'child_process';
+import {readdir, fstat,  writeFile} from 'fs';
+
+var parseError = (error: ExecException): String | null => {
+	console.log(error);
+	return null;
+}
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -25,17 +31,39 @@ export function activate(context: vscode.ExtensionContext) {
 		let terminal = vscode.window.createTerminal('coderunner');
 		terminal.show();
 		let name = terminal.name;
+		let codefiles = [];
 		terminal.processId.then((val: Number)=>{
 			console.log(`Terminal opened with ${val} id`);
-			exec('pwd', (err, stdout, stderr)=>{
-				if(err){
-					console.log("Error Occured");
-					console.log(err);
-				} else{
-					console.log(stdout)
-				}
+			readdir('./', (err, files)=>{
+				files.forEach(file => {
+					if(file.endsWith('.py')){
+						codefiles.push(file);
+						exec(`python ${file}`, (err, stdout, stderr)=>{
+							if(err){
+								console.log("Error");
+								writeFile('./output.txt', err, ()=>{
+									parseError(err)
+								});
+							} else{
+								console.log(stdout, stderr);
+								writeFile('./output.txt', stdout, (output)=>{
+									console.log(output);
+								});
+							}
+						});
+					}
+				})
 			})
 		});
+
+		// exec("-name '*.py'", (err, stdout, stderr)=>{
+		// 	if(err){
+		// 		console.log("Error Occured");
+		// 		console.log(err);
+		// 	} else{
+		// 		console.log(stdout);
+		// 	}
+		// })
 		// console.log(vscode.window.activeTextEditor);
 		vscode.window.showInformationMessage('Processing.....');
 	});

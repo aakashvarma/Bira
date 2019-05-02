@@ -4,6 +4,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require("vscode");
 const child_process_1 = require("child_process");
+const fs_1 = require("fs");
+var parseError = (error) => {
+    console.log(error);
+    return null;
+};
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 function activate(context) {
@@ -23,18 +28,39 @@ function activate(context) {
         let terminal = vscode.window.createTerminal('coderunner');
         terminal.show();
         let name = terminal.name;
+        let codefiles = [];
         terminal.processId.then((val) => {
             console.log(`Terminal opened with ${val} id`);
-            child_process_1.exec('pwd', (err, stdout, stderr) => {
-                if (err) {
-                    console.log("Error Occured");
-                    console.log(err);
-                }
-                else {
-                    console.log(stdout);
-                }
+            fs_1.readdir('./', (err, files) => {
+                files.forEach(file => {
+                    if (file.endsWith('.py')) {
+                        codefiles.push(file);
+                        child_process_1.exec(`python ${file}`, (err, stdout, stderr) => {
+                            if (err) {
+                                console.log("Error");
+                                fs_1.writeFile('./output.txt', err, () => {
+                                    parseError(err);
+                                });
+                            }
+                            else {
+                                console.log(stdout, stderr);
+                                fs_1.writeFile('./output.txt', stdout, (output) => {
+                                    console.log(output);
+                                });
+                            }
+                        });
+                    }
+                });
             });
         });
+        // exec("-name '*.py'", (err, stdout, stderr)=>{
+        // 	if(err){
+        // 		console.log("Error Occured");
+        // 		console.log(err);
+        // 	} else{
+        // 		console.log(stdout);
+        // 	}
+        // })
         // console.log(vscode.window.activeTextEditor);
         vscode.window.showInformationMessage('Processing.....');
     });
