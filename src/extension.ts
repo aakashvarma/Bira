@@ -1,13 +1,19 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import * as axios from 'axios';
+import Axios, * as axios from 'axios';
 import * as cheerio from 'cheerio';
 import { exec, ExecException } from 'child_process';
 import {readdir, fstat,  writeFile} from 'fs';
 
-var callStackoverflow = (searchTerm: String) => {
+var callStackoverflow = (searchTerm: string) => {
+	let url = `https://api.stackexchange.com/2.2/similar?order=desc&sort=votes&title=${searchTerm}&site=stackoverflow`;
 	console.log("Searching--->", searchTerm);
+	axios.default.get(url).then((resp)=>{
+		console.log(resp);
+	}).catch((err)=>{
+		console.log(err);
+	});
 }
 
 var parseError = (error: ExecException): String | null => {

@@ -3,10 +3,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require("vscode");
+const axios = require("axios");
 const child_process_1 = require("child_process");
 const fs_1 = require("fs");
 var callStackoverflow = (searchTerm) => {
+    let url = `https://api.stackexchange.com/2.2/similar?order=desc&sort=votes&title=${searchTerm}&site=stackoverflow`;
     console.log("Searching--->", searchTerm);
+    axios.default.get(url).then((resp) => {
+        console.log(resp);
+    }).catch((err) => {
+        console.log(err);
+    });
 };
 var parseError = (error) => {
     let errorList = error.message.split("\n");
