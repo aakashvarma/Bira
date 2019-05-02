@@ -5,8 +5,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const vscode = require("vscode");
 const child_process_1 = require("child_process");
 const fs_1 = require("fs");
+var callStackoverflow = (searchTerm) => {
+    console.log("Searching--->", searchTerm);
+};
 var parseError = (error) => {
-    console.log(error);
+    let errorList = error.message.split("\n");
+    errorList.forEach(searchTerm => {
+        if (searchTerm.includes("Error")) {
+            callStackoverflow(searchTerm);
+        }
+    });
     return null;
 };
 // this method is called when your extension is activated
@@ -20,7 +28,6 @@ function activate(context) {
     // The commandId parameter must match the command field in package.json
     let disposable = vscode.commands.registerCommand('extension.hallo', () => {
         // The code you place here will be executed every time your command is executed
-        // Display a message box to the user
         vscode.workspace.saveAll();
         // vscode.window.onDidChangeActiveTerminal((e)=>{
         // 	console.log("Changed Terminal--->", e);
@@ -29,29 +36,31 @@ function activate(context) {
         terminal.show();
         let name = terminal.name;
         let codefiles = [];
+        let file;
+        let filepath = vscode.window.activeTextEditor || null;
+        if (filepath) {
+            file = filepath.document.uri.fsPath;
+        }
+        // console.log("File is--->", file);
         terminal.processId.then((val) => {
             console.log(`Terminal opened with ${val} id`);
-            fs_1.readdir('./', (err, files) => {
-                files.forEach(file => {
-                    if (file.endsWith('.py')) {
-                        codefiles.push(file);
-                        child_process_1.exec(`python ${file}`, (err, stdout, stderr) => {
-                            if (err) {
-                                console.log("Error");
-                                fs_1.writeFile('./output.txt', err, () => {
-                                    parseError(err);
-                                });
-                            }
-                            else {
-                                console.log(stdout, stderr);
-                                fs_1.writeFile('./output.txt', stdout, (output) => {
-                                    console.log(output);
-                                });
-                            }
+            if (file.endsWith('.py')) {
+                codefiles.push(file);
+                child_process_1.exec(`python ${file}`, (err, stdout, stderr) => {
+                    if (err) {
+                        console.log("Error");
+                        fs_1.writeFile('./output.txt', err, () => {
+                            parseError(err);
+                        });
+                    }
+                    else {
+                        console.log(stdout, stderr);
+                        fs_1.writeFile('./output.txt', stdout, (output) => {
+                            console.log(output);
                         });
                     }
                 });
-            });
+            }
         });
         // exec("-name '*.py'", (err, stdout, stderr)=>{
         // 	if(err){

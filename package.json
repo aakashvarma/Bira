@@ -39,5 +39,10 @@
 		"tslint": "^5.12.1",
 		"@types/node": "^10.12.21",
 		"@types/mocha": "^2.2.42"
+	},
+	"dependencies": {
+		"@types/cheerio": "^0.22.11",
+		"axios": "^0.18.0",
+		"cheerio": "^1.0.0-rc.3"
 	}
 }

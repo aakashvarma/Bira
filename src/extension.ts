@@ -1,11 +1,22 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as axios from 'axios';
+import * as cheerio from 'cheerio';
 import { exec, ExecException } from 'child_process';
 import {readdir, fstat,  writeFile} from 'fs';
 
+var callStackoverflow = (searchTerm: String) => {
+	console.log("Searching--->", searchTerm);
+}
+
 var parseError = (error: ExecException): String | null => {
-	console.log(error);
+	let errorList = error.message.split("\n");
+	errorList.forEach(searchTerm => {
+		if(searchTerm.includes("Error")){
+			callStackoverflow(searchTerm);
+		}
+	})
 	return null;
 }
 
@@ -21,9 +32,8 @@ export function activate(context: vscode.ExtensionContext) {
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('extension.hallo', () => {
+	let disposable: vscode.Disposable = vscode.commands.registerCommand('extension.hallo', () => {
 		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
 		vscode.workspace.saveAll();
 		// vscode.window.onDidChangeActiveTerminal((e)=>{
 		// 	console.log("Changed Terminal--->", e);
@@ -32,28 +42,30 @@ export function activate(context: vscode.ExtensionContext) {
 		terminal.show();
 		let name = terminal.name;
 		let codefiles = [];
+		let file: string;
+		let filepath = vscode.window.activeTextEditor || null;
+		if(filepath){
+			file = filepath.document.uri.fsPath;
+		}
+		// console.log("File is--->", file);
 		terminal.processId.then((val: Number)=>{
 			console.log(`Terminal opened with ${val} id`);
-			readdir('./', (err, files)=>{
-				files.forEach(file => {
-					if(file.endsWith('.py')){
-						codefiles.push(file);
-						exec(`python ${file}`, (err, stdout, stderr)=>{
-							if(err){
-								console.log("Error");
-								writeFile('./output.txt', err, ()=>{
-									parseError(err)
-								});
-							} else{
-								console.log(stdout, stderr);
-								writeFile('./output.txt', stdout, (output)=>{
-									console.log(output);
-								});
-							}
+			if(file.endsWith('.py')){
+				codefiles.push(file);
+				exec(`python ${file}`, (err, stdout, stderr)=>{
+					if(err){
+						console.log("Error");
+						writeFile('./output.txt', err, ()=>{
+							parseError(err)
+						});
+					} else{
+						console.log(stdout, stderr);
+						writeFile('./output.txt', stdout, (output)=>{
+							console.log(output);
 						});
 					}
-				})
-			})
+				});
+			}
 		});
 
 		// exec("-name '*.py'", (err, stdout, stderr)=>{
