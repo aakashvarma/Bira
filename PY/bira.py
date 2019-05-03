@@ -52,7 +52,8 @@ def execute(command):
     errors = ' '.join(errors)
 
 
+
 print(os.getcwd())
-file_path = ["testprocesss"]
-language = "python3"
+file_path = ["testprocesss.py"]
+language = "python"
 execute([language] + file_path)
