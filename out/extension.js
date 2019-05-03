@@ -1,20 +1,59 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require("vscode");
-const axios = require("axios");
+const axios_1 = require("axios");
+const cheerio = require("cheerio");
 const child_process_1 = require("child_process");
 const fs_1 = require("fs");
-var callStackoverflow = (searchTerm) => {
-    let url = `https://api.stackexchange.com/2.2/similar?order=desc&sort=votes&title=${searchTerm}&site=stackoverflow`;
-    console.log("Searching--->", searchTerm);
-    axios.default.get(url).then((resp) => {
-        console.log(resp);
-    }).catch((err) => {
+var scrapePage = (ansObj) => __awaiter(this, void 0, void 0, function* () {
+    let $ = cheerio.load(ansObj.link);
+    console.log($('.answercell').find('.post-text').text());
+});
+var asyncAnswer = (obj) => __awaiter(this, void 0, void 0, function* () {
+    let { link, is_answered, score, title } = obj;
+    let ansObj = {
+        link,
+        is_answered,
+        score,
+        title
+    };
+    scrapePage(ansObj);
+});
+var callStackoverflow = (searchTerm) => __awaiter(this, void 0, void 0, function* () {
+    let url = `https://api.stackexchange.com/2.2/search?order=desc&sort=votes&intitle=${searchTerm}&site=stackoverflow`;
+    vscode.window.showInformationMessage("Fetching Stackoverflow results");
+    axios_1.default.get(url).then((resp) => __awaiter(this, void 0, void 0, function* () {
+        let { data, status } = resp;
+        if (status === 200) {
+            console.log("Searching for -->", searchTerm);
+            let dataArray = data['items'].slice(0, 5);
+            let qa = dataArray.map((item) => asyncAnswer(item));
+            // writeFile('./response.json', JSON.stringify(resp.data),{flag: 'w'}, (err)=>{
+            // 	if(err) {
+            // 		return err;
+            // 	}
+            // vscode.window.showTextDocument().then(val=> console.log(val));
+            // });
+            // console.log(vscode.workspace.asRelativePath());
+            // console.log(vscode.workspace.textDocuments);
+        }
+        else {
+            vscode.window.showErrorMessage("Failed to fetch Stackoverflow");
+        }
+    })).catch((err) => {
         console.log(err);
     });
-};
+});
 var parseError = (error) => {
     let errorList = error.message.split("\n");
     errorList.forEach(searchTerm => {
@@ -30,6 +69,10 @@ function activate(context) {
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
     console.log('Congratulations, your extension "bira" is now active!');
+    //TODO: Check is language is available
+    vscode.languages.getLanguages().then(langs => {
+        console.log(langs);
+    });
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with registerCommand
     // The commandId parameter must match the command field in package.json
