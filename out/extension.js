@@ -16,8 +16,17 @@ const cheerio = require("cheerio");
 const child_process_1 = require("child_process");
 const fs_1 = require("fs");
 var scrapePage = (ansObj) => __awaiter(this, void 0, void 0, function* () {
-    let $ = cheerio.load(ansObj.link);
-    console.log($('.answercell').find('.post-text').text());
+    console.log(ansObj.link);
+    let response = yield axios_1.default.get(ansObj.link);
+    if (response.status === 200) {
+        let $ = cheerio.load(response.data);
+        let answer = yield $('.answercell').children('.post-text');
+        answer = answer.map((idx, ele) => {
+            return $(ele).text();
+        });
+        // console.log(answer);
+        return Object.assign({}, ansObj, { answer });
+    }
 });
 var asyncAnswer = (obj) => __awaiter(this, void 0, void 0, function* () {
     let { link, is_answered, score, title } = obj;
@@ -27,7 +36,8 @@ var asyncAnswer = (obj) => __awaiter(this, void 0, void 0, function* () {
         score,
         title
     };
-    scrapePage(ansObj);
+    let pages = yield scrapePage(ansObj);
+    console.log(pages);
 });
 var callStackoverflow = (searchTerm) => __awaiter(this, void 0, void 0, function* () {
     let url = `https://api.stackexchange.com/2.2/search?order=desc&sort=votes&intitle=${searchTerm}&site=stackoverflow`;
@@ -37,7 +47,7 @@ var callStackoverflow = (searchTerm) => __awaiter(this, void 0, void 0, function
         if (status === 200) {
             console.log("Searching for -->", searchTerm);
             let dataArray = data['items'].slice(0, 5);
-            let qa = dataArray.map((item) => asyncAnswer(item));
+            return Promise.all(dataArray.map((item) => asyncAnswer(item)));
             // writeFile('./response.json', JSON.stringify(resp.data),{flag: 'w'}, (err)=>{
             // 	if(err) {
             // 		return err;
@@ -56,11 +66,11 @@ var callStackoverflow = (searchTerm) => __awaiter(this, void 0, void 0, function
 });
 var parseError = (error) => {
     let errorList = error.message.split("\n");
-    errorList.forEach(searchTerm => {
+    errorList.forEach((searchTerm) => __awaiter(this, void 0, void 0, function* () {
         if (searchTerm.includes("Error")) {
-            callStackoverflow(searchTerm);
+            return yield callStackoverflow(searchTerm);
         }
-    });
+    }));
     return null;
 };
 // this method is called when your extension is activated
@@ -99,9 +109,12 @@ function activate(context) {
                 child_process_1.exec(`python ${file}`, (err, stdout, stderr) => {
                     if (err) {
                         console.log("Error");
-                        fs_1.writeFile('./output.txt', err, () => {
-                            parseError(err);
-                        });
+                        fs_1.writeFile('./output.txt', err, () => __awaiter(this, void 0, void 0, function* () {
+                            let answers = yield parseError(err);
+                            fs_1.writeFile('./test.json', answers, () => {
+                                console.log("DONE");
+                            });
+                        }));
                     }
                     else {
                         console.log(stdout, stderr);

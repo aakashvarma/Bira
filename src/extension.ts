@@ -5,10 +5,20 @@ import Axios from 'axios';
 import * as cheerio from 'cheerio';
 import { exec, ExecException } from 'child_process';
 import {readdir, fstat,  writeFile} from 'fs';
+import { print } from 'util';
 
 var scrapePage = async (ansObj: { link: any; is_answered?: any; score?: any; title: any; }) => {
-	let $ = cheerio.load(ansObj.link);
-	console.log($('.answercell').find('.post-text').text());
+	console.log(ansObj.link);
+	let response = await Axios.get(ansObj.link);
+	if(response.status===200){
+		let $ = cheerio.load(response.data);
+		let answer = await $('.answercell').children('.post-text');
+		answer = answer.map((idx, ele) => {
+			return $(ele).text();
+		}) 
+		// console.log(answer);
+		return {...ansObj,answer};
+	}
 };
 
 var asyncAnswer = async (obj: Object | any) => {
@@ -19,7 +29,8 @@ var asyncAnswer = async (obj: Object | any) => {
 		score,
 		title
 	};
-	scrapePage(ansObj);
+	let pages = await scrapePage(ansObj);
+	console.log(pages);
 };
 
 
@@ -31,9 +42,7 @@ var callStackoverflow = async (searchTerm: string) => {
 		if (status===200){
 			console.log("Searching for -->", searchTerm);
 			let dataArray = data['items'].slice(0,5);
-			let qa = dataArray.map((item: any) => asyncAnswer(item));
-
-
+			return Promise.all(dataArray.map((item: any) => asyncAnswer(item)));
 			// writeFile('./response.json', JSON.stringify(resp.data),{flag: 'w'}, (err)=>{
 			// 	if(err) {
 			// 		return err;
@@ -42,8 +51,6 @@ var callStackoverflow = async (searchTerm: string) => {
 			// });
 			// console.log(vscode.workspace.asRelativePath());
 			// console.log(vscode.workspace.textDocuments);
-
-
 		} else{
 			vscode.window.showErrorMessage("Failed to fetch Stackoverflow");
 		}
@@ -52,11 +59,11 @@ var callStackoverflow = async (searchTerm: string) => {
 	});
 };
 
-var parseError = (error: ExecException): String | null => {
+var parseError =  (error: ExecException): any => {
 	let errorList = error.message.split("\n");
-	errorList.forEach(searchTerm => {
+	errorList.forEach( async (searchTerm) => {
 		if(searchTerm.includes("Error")){
-			callStackoverflow(searchTerm);
+			return await callStackoverflow(searchTerm);
 		}
 	});
 	return null;
@@ -101,8 +108,11 @@ export function activate(context: vscode.ExtensionContext) {
 				exec(`python ${file}`, (err, stdout, stderr)=>{
 					if(err){
 						console.log("Error");
-						writeFile('./output.txt', err, ()=>{
-							parseError(err);
+						writeFile('./output.txt', err, async ()=>{
+							let answers = await parseError(err);
+							writeFile('./test.json', answers, () => {
+								console.log("DONE");
+							});
 						});
 					} else{
 						console.log(stdout, stderr);
