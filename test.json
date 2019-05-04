@@ -1,1 +1,57 @@
-null
+{ link:
+   'https://stackoverflow.com/questions/47214038/why-is-my-program-throwing-nameerror-name-x-is-not-defined-for-line-normx',
+  is_answered: true,
+  score: 1,
+  title:
+   'Why is my program throwing NameError: name &#39;x&#39; is not defined for line norm(x)?',
+  answer: initialize {
+     '0':
+      '\nYou never captured the returned values\n\ndef main():\n    x= read_fp_numbers()\n    display_norm(norm(x)) \n\n    ',
+     options:
+      { withDomLvl1: true,
+        normalizeWhitespace: false,
+        xml: false,
+        decodeEntities: true },
+     _root:
+      initialize { '0': [Object], options: [Object], length: 1, _root: [Circular] },
+     length: 1,
+     prevObject:
+      initialize {
+        '0': [Object],
+        options: [Object],
+        _root: [initialize],
+        length: 1,
+        prevObject: [initialize] } } }ort url\nfrom . import views\n\nurlpatterns = [\n    url(r\'^hello/$\', views.hello),\n]\n\n    ',
+     '1':
+      '\nMake sure you have imported following modules to urls.py.\n\nfrom django.conf.urls import url\nfrom django.contrib import admin\n\n    ',
+     '2':
+      '\nIn Django 2.1.7 here is the default  urls .py file\n\nfrom django.contrib import admin\nfrom django.urls import path\n\nurlpatterns = [\n    path(\'admin/\', admin.site.urls),\n]\n\n\nso we need to add this line as well\n    from django.conf.urls import url\n    ',
+     options:
+      { withDomLvl1: true,
+        normalizeWhitespace: false,
+        xml: false,
+        decodeEntities: true },
+     _root:
+      initialize { '0': [Object], options: [Object], length: 1, _root: [Circular] },
+     length: 3,
+     prevObject:
+      initialize {
+        '0': [Object],
+        '1': [Object],
+        '2': [Object],
+        options: [Object],
+        _root: [initialize],
+        length: 3,
+        prevObject: [initialize] } } }odeEntities: true },
+     _root:
+      initialize { '0': [Object], options: [Object], length: 1, _root: [Circular] },
+     length: 3,
+     prevObject:
+      initialize {
+        '0': [Object],
+        '1': [Object],
+        '2': [Object],
+        options: [Object],
+        _root: [initialize],
+        length: 3,
+        prevObject: [initialize] } } }

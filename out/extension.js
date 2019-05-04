@@ -15,19 +15,34 @@ const axios_1 = require("axios");
 const cheerio = require("cheerio");
 const child_process_1 = require("child_process");
 const fs_1 = require("fs");
+const puppeteer = require("puppeteer");
+const util = require("util");
 var scrapePage = (ansObj) => __awaiter(this, void 0, void 0, function* () {
-    console.log(ansObj.link);
-    let response = yield axios_1.default.get(ansObj.link);
-    if (response.status === 200) {
-        let $ = cheerio.load(response.data);
-        let answer = yield $('.answercell').children('.post-text');
-        answer = answer.map((idx, ele) => {
-            return $(ele).text();
-        });
-        // console.log(answer);
-        return Object.assign({}, ansObj, { answer });
-    }
+    return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+        console.log(ansObj.link);
+        let response = yield axios_1.default.get(ansObj.link);
+        if (response.status === 200) {
+            let $ = cheerio.load(response.data);
+            let answer = yield $('.answercell').children('.post-text');
+            answer = answer.map((idx, ele) => {
+                return $(ele).text();
+            });
+            return resolve(util.inspect(Object.assign({}, ansObj, { answer })));
+        }
+    }));
 });
+function getPage(ansObj) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const browser = yield puppeteer.launch({ headless: false });
+        const page = yield browser.newPage();
+        yield page.goto(ansObj.link);
+        yield page.setViewport({ width: 1000, height: 500 });
+        yield page.screenshot({ path: `results/${ansObj.title}.png` });
+        // await page.pdf({path: `./pdfs/${ansObj.title}.pdf`});
+        yield browser.close();
+        // return page;
+    });
+}
 var asyncAnswer = (obj) => __awaiter(this, void 0, void 0, function* () {
     let { link, is_answered, score, title } = obj;
     let ansObj = {
@@ -36,18 +51,23 @@ var asyncAnswer = (obj) => __awaiter(this, void 0, void 0, function* () {
         score,
         title
     };
-    let pages = yield scrapePage(ansObj);
-    console.log(pages);
+    yield getPage(ansObj);
+    // let pages = await scrapePage(ansObj);
+    // console.log("Pages--->", pages);
+    // writeFile('./test.json', JSON.stringify(pages), () => {
+    // 	console.log("DONE");
+    // });
+    // return pages;
 });
 var callStackoverflow = (searchTerm) => __awaiter(this, void 0, void 0, function* () {
     let url = `https://api.stackexchange.com/2.2/search?order=desc&sort=votes&intitle=${searchTerm}&site=stackoverflow`;
     vscode.window.showInformationMessage("Fetching Stackoverflow results");
-    axios_1.default.get(url).then((resp) => __awaiter(this, void 0, void 0, function* () {
+    yield axios_1.default.get(url).then((resp) => __awaiter(this, void 0, void 0, function* () {
         let { data, status } = resp;
         if (status === 200) {
             console.log("Searching for -->", searchTerm);
             let dataArray = data['items'].slice(0, 5);
-            return Promise.all(dataArray.map((item) => asyncAnswer(item)));
+            return yield Promise.all(dataArray.map((item) => asyncAnswer(item)));
             // writeFile('./response.json', JSON.stringify(resp.data),{flag: 'w'}, (err)=>{
             // 	if(err) {
             // 		return err;
@@ -64,15 +84,15 @@ var callStackoverflow = (searchTerm) => __awaiter(this, void 0, void 0, function
         console.log(err);
     });
 });
-var parseError = (error) => {
+var parseError = (error) => __awaiter(this, void 0, void 0, function* () {
     let errorList = error.message.split("\n");
     errorList.forEach((searchTerm) => __awaiter(this, void 0, void 0, function* () {
         if (searchTerm.includes("Error")) {
-            return yield callStackoverflow(searchTerm);
+            let ans = yield callStackoverflow(searchTerm);
+            console.log("Results-->", ans);
         }
     }));
-    return null;
-};
+});
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 function activate(context) {
@@ -108,12 +128,8 @@ function activate(context) {
                 codefiles.push(file);
                 child_process_1.exec(`python ${file}`, (err, stdout, stderr) => {
                     if (err) {
-                        console.log("Error");
                         fs_1.writeFile('./output.txt', err, () => __awaiter(this, void 0, void 0, function* () {
                             let answers = yield parseError(err);
-                            fs_1.writeFile('./test.json', answers, () => {
-                                console.log("DONE");
-                            });
                         }));
                     }
                     else {

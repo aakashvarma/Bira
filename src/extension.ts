@@ -5,21 +5,35 @@ import Axios from 'axios';
 import * as cheerio from 'cheerio';
 import { exec, ExecException } from 'child_process';
 import {readdir, fstat,  writeFile} from 'fs';
-import { print } from 'util';
+import * as puppeteer from 'puppeteer';
+import * as util from 'util';
 
 var scrapePage = async (ansObj: { link: any; is_answered?: any; score?: any; title: any; }) => {
-	console.log(ansObj.link);
-	let response = await Axios.get(ansObj.link);
-	if(response.status===200){
-		let $ = cheerio.load(response.data);
-		let answer = await $('.answercell').children('.post-text');
-		answer = answer.map((idx, ele) => {
-			return $(ele).text();
-		}) 
-		// console.log(answer);
-		return {...ansObj,answer};
-	}
+	return new Promise( async (resolve, reject) => {
+		console.log(ansObj.link);
+		let response = await Axios.get(ansObj.link);
+		if(response.status===200){
+			let $ = cheerio.load(response.data);
+			let answer = await $('.answercell').children('.post-text');
+			answer = answer.map((idx, ele) => {
+				return $(ele).text();
+			}); 
+			return resolve(util.inspect({...ansObj,answer}));
+		}
+	});
 };
+
+async function getPage(ansObj: { link: any; is_answered?: any; score?: any; title: any; }){
+	const browser = await puppeteer.launch({headless: false});
+	const page = await browser.newPage();
+	await page.goto(ansObj.link);
+	await page.setViewport({width: 1000, height: 500});
+	await page.screenshot({path: `results/${ansObj.title}.png`});
+	// await page.pdf({path: `./pdfs/${ansObj.title}.pdf`});
+
+	await browser.close();
+	// return page;
+}
 
 var asyncAnswer = async (obj: Object | any) => {
 	let {link, is_answered, score, title} = obj;
@@ -29,20 +43,27 @@ var asyncAnswer = async (obj: Object | any) => {
 		score,
 		title
 	};
-	let pages = await scrapePage(ansObj);
-	console.log(pages);
+
+	await getPage(ansObj);
+
+	// let pages = await scrapePage(ansObj);
+	// console.log("Pages--->", pages);
+	// writeFile('./test.json', JSON.stringify(pages), () => {
+	// 	console.log("DONE");
+	// });
+	// return pages;
 };
 
 
 var callStackoverflow = async (searchTerm: string) => {
 	let url = `https://api.stackexchange.com/2.2/search?order=desc&sort=votes&intitle=${searchTerm}&site=stackoverflow`;
 	vscode.window.showInformationMessage("Fetching Stackoverflow results");
-	Axios.get(url).then( async (resp)=>{
+	await Axios.get(url).then( async (resp)=>{
 		let {data, status} = resp;
 		if (status===200){
 			console.log("Searching for -->", searchTerm);
 			let dataArray = data['items'].slice(0,5);
-			return Promise.all(dataArray.map((item: any) => asyncAnswer(item)));
+			return await Promise.all(dataArray.map((item: any) => asyncAnswer(item)));
 			// writeFile('./response.json', JSON.stringify(resp.data),{flag: 'w'}, (err)=>{
 			// 	if(err) {
 			// 		return err;
@@ -59,14 +80,14 @@ var callStackoverflow = async (searchTerm: string) => {
 	});
 };
 
-var parseError =  (error: ExecException): any => {
+var parseError = async (error: ExecException): Promise<any> => {
 	let errorList = error.message.split("\n");
 	errorList.forEach( async (searchTerm) => {
 		if(searchTerm.includes("Error")){
-			return await callStackoverflow(searchTerm);
+			let ans = await callStackoverflow(searchTerm);
+			console.log("Results-->", ans);
 		}
 	});
-	return null;
 };
 
 // this method is called when your extension is activated
@@ -107,12 +128,8 @@ export function activate(context: vscode.ExtensionContext) {
 				codefiles.push(file);
 				exec(`python ${file}`, (err, stdout, stderr)=>{
 					if(err){
-						console.log("Error");
 						writeFile('./output.txt', err, async ()=>{
 							let answers = await parseError(err);
-							writeFile('./test.json', answers, () => {
-								console.log("DONE");
-							});
 						});
 					} else{
 						console.log(stdout, stderr);
